@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sr">
 <head>
   <meta charset="UTF-8">
-  <title>Zmija Igrica</title>
+  <title>Zmija Real Feel</title>
   <style>
     body { background: #000; margin: 0; text-align: center; }
-    canvas { background: #111; margin-top: 20px; }
+    canvas { background: #111; margin-top: 20px; display: block; margin: 0 auto; }
     .controls {
       margin-top: 20px;
     }
     button {
       width: 60px;
       height: 60px;
-      font-size: 20px;
+      font-size: 22px;
       margin: 5px;
-      background: #444;
+      background: #333;
       color: white;
       border: none;
       border-radius: 10px;
@@ -22,111 +22,108 @@
   </style>
 </head>
 <body>
-  <h2 style="color: white;">Zmija Igrica</h2>
+  <h2 style="color: white;">Zmija Real Feel</h2>
   <canvas id="game" width="400" height="400"></canvas>
 
   <div class="controls">
+    <div><button onclick="setDirection('up')">↑</button></div>
     <div>
-      <button onclick="changeDirection('up')">↑</button>
-    </div>
-    <div>
-      <button onclick="changeDirection('left')">←</button>
-      <button onclick="changeDirection('down')">↓</button>
-      <button onclick="changeDirection('right')">→</button>
+      <button onclick="setDirection('left')">←</button>
+      <button onclick="setDirection('down')">↓</button>
+      <button onclick="setDirection('right')">→</button>
     </div>
   </div>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    const grid = 20;
-    let count = 0;
+    const gridSize = 20;
+    let speed = 200; // sporije: 200ms između poteza
+
+    let snake = [{ x: 160, y: 160 }];
+    let direction = { x: 0, y: 0 };
+    let newDirection = { x: 0, y: 0 };
+    let food = spawnFood();
     let score = 0;
 
-    const snake = {
-      x: 160,
-      y: 160,
-      dx: grid,
-      dy: 0,
-      cells: [],
-      maxCells: 4
-    };
-
-    const apple = {
-      x: 320,
-      y: 320
-    };
-
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min)) + min;
+    function spawnFood() {
+      return {
+        x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+        y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
+      };
     }
 
-    function loop() {
-      requestAnimationFrame(loop);
-      if (++count < 4) return;
-      count = 0;
+    function setDirection(dir) {
+      if (dir === 'up' && direction.y === 0) newDirection = { x: 0, y: -gridSize };
+      if (dir === 'down' && direction.y === 0) newDirection = { x: 0, y: gridSize };
+      if (dir === 'left' && direction.x === 0) newDirection = { x: -gridSize, y: 0 };
+      if (dir === 'right' && direction.x === 0) newDirection = { x: gridSize, y: 0 };
+    }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      snake.x += snake.dx;
-      snake.y += snake.dy;
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp') setDirection('up');
+      if (e.key === 'ArrowDown') setDirection('down');
+      if (e.key === 'ArrowLeft') setDirection('left');
+      if (e.key === 'ArrowRight') setDirection('right');
+    });
 
-      if (snake.x < 0) snake.x = canvas.width - grid;
-      else if (snake.x >= canvas.width) snake.x = 0;
-      if (snake.y < 0) snake.y = canvas.height - grid;
-      else if (snake.y >= canvas.height) snake.y = 0;
+    function gameLoop() {
+      setTimeout(() => {
+        requestAnimationFrame(gameLoop);
+        direction = newDirection;
 
-      snake.cells.unshift({ x: snake.x, y: snake.y });
-      if (snake.cells.length > snake.maxCells) snake.cells.pop();
+        const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
-      ctx.fillStyle = 'red';
-      ctx.fillRect(apple.x, apple.y, grid - 1, grid - 1);
+        // zidovi - teleport
+        if (head.x >= canvas.width) head.x = 0;
+        if (head.x < 0) head.x = canvas.width - gridSize;
+        if (head.y >= canvas.height) head.y = 0;
+        if (head.y < 0) head.y = canvas.height - gridSize;
 
-      ctx.fillStyle = 'lime';
-      snake.cells.forEach((cell, index) => {
-        ctx.fillRect(cell.x, cell.y, grid - 1, grid - 1);
-        if (cell.x === apple.x && cell.y === apple.y) {
-          snake.maxCells++;
+        snake.unshift(head);
+
+        // pojela hranu
+        if (head.x === food.x && head.y === food.y) {
           score++;
-          apple.x = getRandomInt(0, 20) * grid;
-          apple.y = getRandomInt(0, 20) * grid;
+          food = spawnFood();
+        } else {
+          snake.pop();
         }
-        for (let i = index + 1; i < snake.cells.length; i++) {
-          if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
-            snake.x = 160;
-            snake.y = 160;
-            snake.cells = [];
-            snake.maxCells = 4;
-            snake.dx = grid;
-            snake.dy = 0;
+
+        // udarila sebe
+        for (let i = 1; i < snake.length; i++) {
+          if (snake[i].x === head.x && snake[i].y === head.y) {
+            snake = [{ x: 160, y: 160 }];
+            direction = { x: 0, y: 0 };
+            newDirection = { x: 0, y: 0 };
+            food = spawnFood();
             score = 0;
-            apple.x = getRandomInt(0, 20) * grid;
-            apple.y = getRandomInt(0, 20) * grid;
+            return;
           }
         }
-      });
 
-      ctx.fillStyle = "white";
-      ctx.font = "16px Arial";
-      ctx.fillText("Poeni: " + score, 10, 390);
+        // crtanje
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // hrana
+        ctx.fillStyle = 'red';
+        ctx.fillRect(food.x, food.y, gridSize, gridSize);
+
+        // zmija
+        ctx.fillStyle = 'lime';
+        for (let segment of snake) {
+          ctx.fillRect(segment.x, segment.y, gridSize - 1, gridSize - 1);
+        }
+
+        // skor
+        ctx.fillStyle = 'white';
+        ctx.font = '16px Arial';
+        ctx.fillText("Poeni: " + score, 10, 390);
+
+      }, speed);
     }
 
-    function changeDirection(dir) {
-      if (dir === 'up' && snake.dy === 0) {
-        snake.dy = -grid;
-        snake.dx = 0;
-      } else if (dir === 'down' && snake.dy === 0) {
-        snake.dy = grid;
-        snake.dx = 0;
-      } else if (dir === 'left' && snake.dx === 0) {
-        snake.dx = -grid;
-        snake.dy = 0;
-      } else if (dir === 'right' && snake.dx === 0) {
-        snake.dx = grid;
-        snake.dy = 0;
-      }
-    }
-
-    requestAnimationFrame(loop);
+    gameLoop();
   </script>
 </body>
 </html>
