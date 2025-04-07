@@ -105,9 +105,12 @@
         // crtanje
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // hrana
-        ctx.fillStyle = 'red';
-        ctx.fillRect(food.x, food.y, gridSize, gridSize);
+        // hrana kao slika
+let foodImage = new Image();
+foodImage.src = 'hrana.png';
+ctx.drawImage(foodImage, food.x, food.y, gridSize, gridSize);
+        
+    
 
         // zmija
         ctx.fillStyle = 'lime';
