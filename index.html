@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Zmija Igrica</title>
   <style>
     body { background: #000; margin: 0; text-align: center; }
-    canvas { background: #111; margin-top: 20px; display: block; margin-left: auto; margin-right: auto; }
+    canvas { background: #111; margin-top: 20px; }
     .controls {
       margin-top: 20px;
     }
@@ -27,95 +27,106 @@
 
   <div class="controls">
     <div>
-      <button onclick="promeniPravac('gore')">↑</button>
+      <button onclick="changeDirection('up')">↑</button>
     </div>
     <div>
-      <button onclick="promeniPravac('levo')">←</button>
-      <button onclick="promeniPravac('dole')">↓</button>
-      <button onclick="promeniPravac('desno')">→</button>
+      <button onclick="changeDirection('left')">←</button>
+      <button onclick="changeDirection('down')">↓</button>
+      <button onclick="changeDirection('right')">→</button>
     </div>
   </div>
 
   <script>
-    const platno = document.getElementById('game');
-    const ctx = platno.getContext('2d');
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
     const grid = 20;
-    let brojac = 0;
-    let poeni = 0;
-    let brzina = 8;
-    let slikaHrane = new Image();
-    slikaHrane.src = 'hrana.png';
+    let count = 0;
+    let score = 0;
 
-    const zmija = {
+    const snake = {
       x: 160,
       y: 160,
       dx: grid,
       dy: 0,
-      delovi: [],
-      maxDelovi: 4
+      cells: [],
+      maxCells: 4
     };
 
-    const hrana = {
+    const apple = {
       x: 320,
-      y: 320,
-      jeSlika: true
+      y: 320
     };
 
-    function nasumicniBroj(min, max) {
+    function getRandomInt(min, max) {
       return Math.floor(Math.random() * (max - min)) + min;
     }
 
-    function petlja() {
-      requestAnimationFrame(petlja);
-      if (++brojac < brzina) return;
-      brojac = 0;
+    function loop() {
+      requestAnimationFrame(loop);
+      if (++count < 4) return;
+      count = 0;
 
-      ctx.clearRect(0, 0, platno.width, platno.height);
-      zmija.x += zmija.dx;
-      zmija.y += zmija.dy;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      snake.x += snake.dx;
+      snake.y += snake.dy;
 
-      if (zmija.x < 0) zmija.x = platno.width - grid;
-      else if (zmija.x >= platno.width) zmija.x = 0;
-      if (zmija.y < 0) zmija.y = platno.height - grid;
-      else if (zmija.y >= platno.height) zmija.y = 0;
+      if (snake.x < 0) snake.x = canvas.width - grid;
+      else if (snake.x >= canvas.width) snake.x = 0;
+      if (snake.y < 0) snake.y = canvas.height - grid;
+      else if (snake.y >= canvas.height) snake.y = 0;
 
-      zmija.delovi.unshift({ x: zmija.x, y: zmija.y });
-      if (zmija.delovi.length > zmija.maxDelovi) zmija.delovi.pop();
+      snake.cells.unshift({ x: snake.x, y: snake.y });
+      if (snake.cells.length > snake.maxCells) snake.cells.pop();
 
-      if (hrana.jeSlika) {
-        ctx.drawImage(slikaHrane, hrana.x, hrana.y, grid, grid);
-      } else {
-        ctx.fillStyle = 'red';
-        ctx.fillRect(hrana.x, hrana.y, grid - 1, grid - 1);
-      }
+      ctx.fillStyle = 'red';
+      ctx.fillRect(apple.x, apple.y, grid - 1, grid - 1);
 
       ctx.fillStyle = 'lime';
-      zmija.delovi.forEach((deo, index) => {
-        ctx.fillRect(deo.x, deo.y, grid - 1, grid - 1);
-        if (deo.x === hrana.x && deo.y === hrana.y) {
-          zmija.maxDelovi++;
-          poeni++;
-          brzina = Math.max(2, brzina - 0.5);
-          hrana.x = nasumicniBroj(0, 20) * grid;
-          hrana.y = nasumicniBroj(0, 20) * grid;
-          hrana.jeSlika = false;
+      snake.cells.forEach((cell, index) => {
+        ctx.fillRect(cell.x, cell.y, grid - 1, grid - 1);
+        if (cell.x === apple.x && cell.y === apple.y) {
+          snake.maxCells++;
+          score++;
+          apple.x = getRandomInt(0, 20) * grid;
+          apple.y = getRandomInt(0, 20) * grid;
         }
-        for (let i = index + 1; i < zmija.delovi.length; i++) {
-          if (deo.x === zmija.delovi[i].x && deo.y === zmija.delovi[i].y) {
-            zmija.x = 160;
-            zmija.y = 160;
-            zmija.delovi = [];
-            zmija.maxDelovi = 4;
-            zmija.dx = grid;
-            zmija.dy = 0;
-            hrana.x = nasumicniBroj(0, 20) * grid;
-            hrana.y = nasumicniBroj(0, 20) * grid;
-            hrana.jeSlika = true;
-            poeni = 0;
-            brzina = 8;
+        for (let i = index + 1; i < snake.cells.length; i++) {
+          if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+            snake.x = 160;
+            snake.y = 160;
+            snake.cells = [];
+            snake.maxCells = 4;
+            snake.dx = grid;
+            snake.dy = 0;
+            score = 0;
+            apple.x = getRandomInt(0, 20) * grid;
+            apple.y = getRandomInt(0, 20) * grid;
           }
         }
       });
 
       ctx.fillStyle = "white";
-      
+      ctx.font = "16px Arial";
+      ctx.fillText("Poeni: " + score, 10, 390);
+    }
+
+    function changeDirection(dir) {
+      if (dir === 'up' && snake.dy === 0) {
+        snake.dy = -grid;
+        snake.dx = 0;
+      } else if (dir === 'down' && snake.dy === 0) {
+        snake.dy = grid;
+        snake.dx = 0;
+      } else if (dir === 'left' && snake.dx === 0) {
+        snake.dx = -grid;
+        snake.dy = 0;
+      } else if (dir === 'right' && snake.dx === 0) {
+        snake.dx = grid;
+        snake.dy = 0;
+      }
+    }
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
